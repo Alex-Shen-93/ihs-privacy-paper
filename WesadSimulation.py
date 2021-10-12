@@ -10,7 +10,7 @@ class ScenarioContainerWesad:
                 DATA_PARAMS.IS_BINARY: True,
                 DATA_PARAMS.MICE_ITERATIONS: -1,
                 DATA_PARAMS.MIN_OBS_PER_CLIENT: -1,
-                DATA_PARAMS.NP_SEED: -1
+                DATA_PARAMS.NP_SEED: 42
             }
         }
         self.target_scenarios = {
@@ -133,6 +133,7 @@ try:
         print("Data Loaded")
 except FileNotFoundError:
     print("Data Preprocessing Started")
+    split_files()
     final_df, unscaled_df = wesad_preprocess(data_prop, data_scenario[DATA_PARAMS.NP_SEED])
     with open(data_filename, 'wb') as file:
         pkl.dump((final_df, unscaled_df), file)
