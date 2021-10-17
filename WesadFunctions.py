@@ -18,15 +18,14 @@ def get_client_ids():
     client_ids_numbers.pop(0)
     return list(map(lambda x: 'S' + str(x), client_ids_numbers))
 
-def split_files():
+def split_files(pieces_per_client):
     global_window_size = 21000
-    global_pieces = 100
 
     for client_id in get_client_ids():
         print("Processing {}".format(client_id))
         client_df = pd.DataFrame()
 
-        with open(r'src\WESAD\{}\{}.pkl'.format(client_id, client_id), 'rb') as file:
+        with open('src/WESAD/{}/{}.pkl'.format(client_id, client_id), 'rb') as file:
             data = pkl.load(file, encoding='latin1')
 
         for mode in ['ACC', 'ECG', 'EMG', 'EDA', 'Temp', 'Resp']:
@@ -46,20 +45,22 @@ def split_files():
                 client_agg_df = client_df[client_df["labels"]==label].drop(columns='labels').rolling(global_window_size).agg(['mean', 'std', 'min', 'max'])
                 client_agg_df = client_agg_df[~client_agg_df.isna().any(axis=1)]
                 client_agg_df['labels'] = label
-                client_agg_df = [client_agg_df.iloc[int(i * len(client_agg_df)/global_pieces):int((i+1) * len(client_agg_df)/global_pieces),:] for i in range(global_pieces)]
+                client_agg_df = [client_agg_df.iloc[int(i * len(client_agg_df)/pieces_per_client):int((i+1) * len(client_agg_df)/pieces_per_client),:] for i in range(pieces_per_client)]
             else:
                 temp_df = client_df[client_df["labels"]==label].drop(columns='labels').rolling(global_window_size).agg(['mean', 'std', 'min', 'max'])
                 temp_df = temp_df[~temp_df.isna().any(axis=1)]
                 temp_df['labels'] = label
-                for i in range(global_pieces):
-                    client_agg_df[i] = client_agg_df[i].append(temp_df.iloc[int(i * len(temp_df)/global_pieces):int((i+1) * len(temp_df)/global_pieces),:])
+                for i in range(pieces_per_client):
+                    client_agg_df[i] = client_agg_df[i].append(temp_df.iloc[int(i * len(temp_df)/pieces_per_client):int((i+1) * len(temp_df)/pieces_per_client),:])
 
         for sub_df in client_agg_df:
             sub_df.columns = [' '.join(col).strip() for col in sub_df.columns.values]
 
-        for i in range(global_pieces):
+        for i in range(pieces_per_client):
             with open("src/client_split/{}_{}.pkl".format(client_id, i), 'wb') as file:
                 pkl.dump(client_agg_df[i], file)
+    with open("src/client_split/split.done", 'w') as file:
+        pass 
 
 def wesad_preprocess(data_proportion, np_seed):
     client_id = 0
@@ -75,6 +76,7 @@ def wesad_preprocess(data_proportion, np_seed):
             unscaled_df = temp_df 
         else:
             if np.random.random() < data_proportion:
+                print(filepath)
                 unscaled_df = unscaled_df.append(temp_df)
                 client_id += 1
 
@@ -145,7 +147,7 @@ def run_centralized_convergence_test(data_scenario, target_scenario, all_train_p
     central_model.create_optimizer(target_scenario[TARGET_PARAMS.LEARNING_RATE])
 
     all_train_losses, all_train_accs = [], []
-    for i in range(target_scenario[TARGET_PARAMS.EPOCHS]):
+    for i in range(1):
         central_model.train()
         for batch in train_loader:
             central_model.train_batch(batch)
@@ -397,7 +399,7 @@ def get_trained_attacker_model(known_yes_gradient_stack, known_no_gradient_stack
 def get_property_split(unscaled_df, np_seed, is_wesad=False):
     np.random.seed(np_seed)
     if is_wesad:
-        labels_df = unscaled_df.groupby('client_id').agg({'Temp mean': 'mean'}) > unscaled_df['Temp mean'].mean() * 1.008
+        labels_df = unscaled_df.groupby('client_id').agg({'Temp mean': 'mean'}) > unscaled_df['Temp mean'].mean()
         high_mood_ids = labels_df.query('`Temp mean` == True').index.values
         low_mood_ids = labels_df.query('`Temp mean` == False').index.values
     else:

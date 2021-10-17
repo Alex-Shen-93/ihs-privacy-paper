@@ -54,6 +54,8 @@ try:
     ax[1].plot(temp, label=fl_results['results']['defense_params'][i])
   ax[1].legend()
 
+  plt.savefig("out_fig.png")
+
 except FileNotFoundError:
   print("No FL results for " + str(view_scenario_index) + " found")
   print(fl_results_file_name)

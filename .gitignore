@@ -1,2 +1,6 @@
 src/WESAD/
 __pycache__/
+*.out
+*.png
+*.sbat
+*.zip
