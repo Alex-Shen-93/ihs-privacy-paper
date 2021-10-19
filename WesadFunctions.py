@@ -281,7 +281,7 @@ def get_trained_attacker_model(known_yes_gradient_stack, known_no_gradient_stack
     best_val_epochs = []
 
     torch.manual_seed(attack_scenario[ATTACK_PARAMS.TORCH_SEED])
-    known_gradients = torch.cat((known_yes_gradient_stack, known_no_gradient_stack), dim=1).view((-1, known_yes_gradient_stack.shape[-1]))
+    known_gradients = torch.cat((known_yes_gradient_stack.view(-1, known_yes_gradient_stack.shape[-1]), known_no_gradient_stack.view(-1, known_no_gradient_stack.shape[-1])), dim=0)
 
     known_yes_label_stack = torch.ones(known_yes_gradient_stack.shape[0], known_yes_gradient_stack.shape[1], 1, dtype=torch.float, device=DEVICE)
     known_no_label_stack = torch.zeros(known_no_gradient_stack.shape[0], known_no_gradient_stack.shape[1], 1, dtype=torch.float, device=DEVICE)
